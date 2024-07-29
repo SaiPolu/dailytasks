@@ -1,63 +1,11 @@
-class NoteTaking {
-    constructor() {
-        this.notes = [];
-        this.currentId = 1;
-    }
- 
-    addNote(title, content) {
-        const note = {
-            id: this.currentId++,
-            title: title,
-            content: content
-        };
-        this.notes.push(note);
-        console.log(`Note added: ${JSON.stringify(note)}`);
-        return note;
-    }
- 
-    updateNote(id, updates) {
-        const note = this.notes.find(note => note.id === id);
-        if (note) {
-            Object.assign(note, updates);
-            console.log(`Note updated: ${JSON.stringify(note)}`);
-            return note;
-        } else {
-            console.log(`Note not found for update: ${id}`);
-            return undefined;
-        }
-    }
- 
-    deleteNote(id) {
-        const index = this.notes.findIndex(note => note.id === id);
-        if (index !== -1) {
-            const deletedNote = this.notes.splice(index, 1)[0];
-            console.log(`Note deleted: ${JSON.stringify(deletedNote)}`);
-            return true;
-        } else {
-            console.log(`Note not found for deletion: ${id}`);
-            return false;
-        }
-    }
- 
-    listNotes() {
-        console.log(`Listing notes: ${JSON.stringify(this.notes)}`);
-        return this.notes;
-    }
-}
- 
-const noteTakingInstance = new NoteTaking();
-module.exports = noteTakingInstance;
-
-
-////tgyug
 const fs = require('fs');
 
 // Syntax Check
 function syntaxCheck(jsonString, callback) {
   try {
-    JSON.parse(jsonString);
+    const jsonObject = JSON.parse(jsonString);
     console.log('Syntax Check Passed');
-    callback(null, true);
+    callback(null, true, jsonObject);
   } catch (error) {
     console.log('Syntax Check Failed');
     callback('Invalid JSON syntax', false);
@@ -65,67 +13,67 @@ function syntaxCheck(jsonString, callback) {
 }
 
 // Structure Check
-function structureCheck(jsonString, requiredKeys, callback) {
-  try {
-    const jsonObject = JSON.parse(jsonString);
-    const missingKeys = requiredKeys.filter(key => !(key in jsonObject));
-    if (missingKeys.length > 0) {
-      console.log(`Structure Check Failed. Missing keys: ${missingKeys.join(', ')}`);
-      callback(`Missing keys: ${missingKeys.join(', ')}`, false);
-    } else {
-      console.log('Structure Check Passed');
-      callback(null, true);
-    }
-  } catch (error) {
-    callback('Invalid JSON syntax', false);
+function structureCheck(jsonObject, requiredKeys, callback) {
+  const missingKeys = requiredKeys.filter(key => !(key in jsonObject));
+  if (missingKeys.length > 0) {
+    console.log(`Structure Check Failed. Missing keys: ${missingKeys.join(', ')}`);
+    callback(`Missing keys: ${missingKeys.join(', ')}`, false);
+  } else {
+    console.log('Structure Check Passed');
+    callback(null, true);
   }
 }
 
 // Type Check
-function typeCheck(jsonString, keyTypes, callback) {
-  try {
-    const jsonObject = JSON.parse(jsonString);
-    const typeErrors = [];
+function typeCheck(jsonObject, keyTypes, callback) {
+  const typeErrors = [];
 
-    for (const key in keyTypes) {
-      if (typeof jsonObject[key] !== keyTypes[key]) {
-        typeErrors.push(`Key '${key}' should be of type ${keyTypes[key]}`);
-      }
+  for (const key in keyTypes) {
+    if (typeof jsonObject[key] !== keyTypes[key]) {
+      typeErrors.push(`Key '${key}' should be of type ${keyTypes[key]}`);
     }
+  }
 
-    if (typeErrors.length > 0) {
-      console.log(`Type Check Failed. ${typeErrors.join(', ')}`);
-      callback(`Type errors: ${typeErrors.join(', ')}`, false);
-    } else {
-      console.log('Type Check Passed');
-      callback(null, true);
-    }
-  } catch (error) {
-    callback('Invalid JSON syntax', false);
+  if (typeErrors.length > 0) {
+    console.log(`Type Check Failed. ${typeErrors.join(', ')}`);
+    callback(`Type errors: ${typeErrors.join(', ')}`, false);
+  } else {
+    console.log('Type Check Passed');
+    callback(null, true);
   }
 }
 
 // Combined JSON Validator
 function validateJSON(jsonString, requiredKeys, keyTypes, callback) {
-  const checks = [syntaxCheck, (js, cb) => structureCheck(js, requiredKeys, cb), (js, cb) => typeCheck(js, keyTypes, cb)];
+  const checks = [
+    (jsonString, cb) => syntaxCheck(jsonString, (error, result, jsonObject) => {
+      if (error) {
+        cb(error, false);
+      } else {
+        cb(null, true, jsonObject);
+      }
+    }),
+    (jsonObject, cb) => structureCheck(jsonObject, requiredKeys, cb),
+    (jsonObject, cb) => typeCheck(jsonObject, keyTypes, cb)
+  ];
   const results = [];
   const errorMessages = [];
 
-  function runCheck(index) {
+  function runCheck(index, jsonObject) {
     if (index === checks.length) {
       const isValid = results.every(result => result === true);
       callback(errorMessages, isValid);
       return;
     }
 
-    checks[index](jsonString, (error, result) => {
+    checks[index](jsonObject, (error, result, parsedJsonObject) => {
       if (error) errorMessages.push(error);
       results.push(result);
-      runCheck(index + 1);
+      runCheck(index + 1, parsedJsonObject || jsonObject);
     });
   }
 
-  runCheck(0);
+  runCheck(0, jsonString);
 }
 
 // Example usage with required keys and key types
@@ -143,4 +91,3 @@ const keyTypes = { name: 'string', age: 'number', email: 'string' };
 // });
 
 module.exports = { validateJSON };
-
