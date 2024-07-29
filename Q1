@@ -1,71 +1,46 @@
-const fs = require('fs');
-
-// Syntax Check
-function syntaxCheck(jsonString, callback) {
-  try {
-    const jsonObject = JSON.parse(jsonString);
-    console.log('Syntax Check Passed');
-    callback(null, true, jsonObject);
-  } catch (error) {
-    console.log('Syntax Check Failed');
-    callback('Invalid JSON syntax', false);
+class InventoryManager {
+  constructor() {
+    this.inventory = [];
   }
-}
 
-// Structure Check
-function structureCheck(jsonObject, requiredKeys, callback) {
-  const missingKeys = requiredKeys.filter(key => !(key in jsonObject));
-  if (missingKeys.length > 0) {
-    console.log(`Structure Check Failed. Missing keys: ${missingKeys.join(', ')}`);
-    callback(`Missing keys: ${missingKeys.join(', ')}`, false);
-  } else {
-    console.log('Structure Check Passed');
-    callback(null, true);
-  }
-}
-
-// Type Check
-function typeCheck(jsonObject, keyTypes, callback) {
-  const typeErrors = [];
-
-  for (const key in keyTypes) {
-    if (typeof jsonObject[key] !== keyTypes[key]) {
-      typeErrors.push(`Key '${key}' should be of type ${keyTypes[key]}`);
+  addItem(name, quantity) {
+    const item = this.inventory.find(item => item.name === name);
+    if (item) {
+      return { status: 'error', message: `Item already exists: ${name}` };
+    } else {
+      this.inventory.push({ name, quantity });
+      return { status: 'success', message: `Item added: ${name} with quantity ${quantity}` };
     }
   }
 
-  if (typeErrors.length > 0) {
-    console.log(`Type Check Failed. ${typeErrors.join(', ')}`);
-    callback(`Type errors: ${typeErrors.join(', ')}`, false);
-  } else {
-    console.log('Type Check Passed');
-    callback(null, true);
+  listItems() {
+    return this.inventory;
+  }
+
+  removeItem(name) {
+    const index = this.inventory.findIndex(item => item.name === name);
+    if (index !== -1) {
+      this.inventory.splice(index, 1);
+      return { status: 'success', message: `Item removed: ${name}` };
+    } else {
+      return { status: 'error', message: `Item not found: ${name}` };
+    }
   }
 }
 
-// Combined JSON Validator
-function validateJSON(jsonString, requiredKeys, keyTypes, callback) {
-  syntaxCheck(jsonString, (syntaxError, syntaxIsValid, jsonObject) => {
-    if (!syntaxIsValid) {
-      callback([syntaxError], false);
-      return;
-    }
+module.exports = InventoryManager;
 
-    structureCheck(jsonObject, requiredKeys, (structureError, structureIsValid) => {
-      if (!structureIsValid) {
-        callback([structureError], false);
-        return;
-      }
+// Test script to verify the implementation manually
+if (require.main === module) {
+  const inventoryManager = new InventoryManager();
 
-      typeCheck(jsonObject, keyTypes, (typeError, typeIsValid) => {
-        if (!typeIsValid) {
-          callback([typeError], false);
-        } else {
-          callback([], true);
-        }
-      });
-    });
-  });
+  console.log(inventoryManager.addItem('Laptop', 10));
+  console.log(inventoryManager.addItem('Smartphone', 15));
+  console.log(inventoryManager.addItem('Laptop', 10));
+  console.log('Listing all items:');
+  console.log(inventoryManager.listItems());
+  console.log(inventoryManager.removeItem('Smartphone'));
+  console.log(inventoryManager.removeItem('Tablet'));
+  console.log('Listing all items:');
+  console.log(inventoryManager.listItems());
 }
-
-module.exports = { validateJSON };
