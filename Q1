@@ -45,49 +45,27 @@ function typeCheck(jsonObject, keyTypes, callback) {
 
 // Combined JSON Validator
 function validateJSON(jsonString, requiredKeys, keyTypes, callback) {
-  const checks = [
-    (jsonString, cb) => syntaxCheck(jsonString, (error, result, jsonObject) => {
-      if (error) {
-        cb(error, false);
-      } else {
-        cb(null, true, jsonObject);
-      }
-    }),
-    (jsonObject, cb) => structureCheck(jsonObject, requiredKeys, cb),
-    (jsonObject, cb) => typeCheck(jsonObject, keyTypes, cb)
-  ];
-  const results = [];
-  const errorMessages = [];
-
-  function runCheck(index, jsonObject) {
-    if (index === checks.length) {
-      const isValid = results.every(result => result === true);
-      callback(errorMessages, isValid);
+  syntaxCheck(jsonString, (syntaxError, syntaxIsValid, jsonObject) => {
+    if (!syntaxIsValid) {
+      callback([syntaxError], false);
       return;
     }
 
-    checks[index](jsonObject, (error, result, parsedJsonObject) => {
-      if (error) errorMessages.push(error);
-      results.push(result);
-      runCheck(index + 1, parsedJsonObject || jsonObject);
+    structureCheck(jsonObject, requiredKeys, (structureError, structureIsValid) => {
+      if (!structureIsValid) {
+        callback([structureError], false);
+        return;
+      }
+
+      typeCheck(jsonObject, keyTypes, (typeError, typeIsValid) => {
+        if (!typeIsValid) {
+          callback([typeError], false);
+        } else {
+          callback([], true);
+        }
+      });
     });
-  }
-
-  runCheck(0, jsonString);
+  });
 }
-
-// Example usage with required keys and key types
-const requiredKeys = ['name', 'age', 'email'];
-const keyTypes = { name: 'string', age: 'number', email: 'string' };
-
-// Load JSON data from a file (for demonstration purposes)
-// const jsonString = fs.readFileSync('data.json', 'utf8');
-// validateJSON(jsonString, requiredKeys, keyTypes, (errors, isValid) => {
-//   if (isValid) {
-//     console.log('JSON is valid');
-//   } else {
-//     console.log('JSON is invalid', errors);
-//   }
-// });
 
 module.exports = { validateJSON };
