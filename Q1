@@ -1,0 +1,50 @@
+class NoteTaking {
+    constructor() {
+        this.notes = [];
+        this.currentId = 1;
+    }
+ 
+    addNote(title, content) {
+        const note = {
+            id: this.currentId++,
+            title: title,
+            content: content
+        };
+        this.notes.push(note);
+        console.log(`Note added: ${JSON.stringify(note)}`);
+        return note;
+    }
+ 
+    updateNote(id, updates) {
+        const note = this.notes.find(note => note.id === id);
+        if (note) {
+            Object.assign(note, updates);
+            console.log(`Note updated: ${JSON.stringify(note)}`);
+            return note;
+        } else {
+            console.log(`Note not found for update: ${id}`);
+            return undefined;
+        }
+    }
+ 
+    deleteNote(id) {
+        const index = this.notes.findIndex(note => note.id === id);
+        if (index !== -1) {
+            const deletedNote = this.notes.splice(index, 1)[0];
+            console.log(`Note deleted: ${JSON.stringify(deletedNote)}`);
+            return true;
+        } else {
+            console.log(`Note not found for deletion: ${id}`);
+            return false;
+        }
+    }
+ 
+    listNotes() {
+        console.log(`Listing notes: ${JSON.stringify(this.notes)}`);
+        return this.notes;
+    }
+}
+ 
+const noteTakingInstance = new NoteTaking();
+module.exports = noteTakingInstance;
+ 
