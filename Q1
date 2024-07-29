@@ -50,12 +50,7 @@ module.exports = noteTakingInstance;
 
 
 ////tgyug
-
-
 const fs = require('fs');
-
-// Read JSON Data from File
-const jsonString = fs.readFileSync('data.json', 'utf8');
 
 // Syntax Check
 function syntaxCheck(jsonString, callback) {
@@ -112,7 +107,7 @@ function typeCheck(jsonString, keyTypes, callback) {
 
 // Combined JSON Validator
 function validateJSON(jsonString, requiredKeys, keyTypes, callback) {
-  const checks = [syntaxCheck, structureCheck, typeCheck];
+  const checks = [syntaxCheck, (js, cb) => structureCheck(js, requiredKeys, cb), (js, cb) => typeCheck(js, keyTypes, cb)];
   const results = [];
   const errorMessages = [];
 
@@ -123,7 +118,7 @@ function validateJSON(jsonString, requiredKeys, keyTypes, callback) {
       return;
     }
 
-    checks[index](jsonString, requiredKeys, (error, result) => {
+    checks[index](jsonString, (error, result) => {
       if (error) errorMessages.push(error);
       results.push(result);
       runCheck(index + 1);
@@ -137,13 +132,15 @@ function validateJSON(jsonString, requiredKeys, keyTypes, callback) {
 const requiredKeys = ['name', 'age', 'email'];
 const keyTypes = { name: 'string', age: 'number', email: 'string' };
 
-validateJSON(jsonString, requiredKeys, keyTypes, (errors, isValid) => {
-  if (isValid) {
-    console.log('JSON is valid');
-  } else {
-    console.log('JSON is invalid', errors);
-  }
-});
+// Load JSON data from a file (for demonstration purposes)
+// const jsonString = fs.readFileSync('data.json', 'utf8');
+// validateJSON(jsonString, requiredKeys, keyTypes, (errors, isValid) => {
+//   if (isValid) {
+//     console.log('JSON is valid');
+//   } else {
+//     console.log('JSON is invalid', errors);
+//   }
+// });
 
 module.exports = { validateJSON };
 
