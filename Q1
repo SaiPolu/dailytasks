@@ -1,79 +1,78 @@
-function formatCheck(email, callback) {
-  const formatRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (formatRegex.test(email)) {
-    console.log('Format check passed');
-    callback(null, true);
-  } else {
-    console.log('Format check failed');
-    callback('Email format is invalid', false);
+const EventEmitter = require('events');
+
+class BankingSystem extends EventEmitter {
+  constructor() {
+    super();
+    this.accounts = {};
   }
-}
 
-function domainCheck(email, callback) {
-  const domain = email.split('@')[1];
-  if (domain) {
-    console.log('Domain check passed');
-    callback(null, true);
-  } else {
-    console.log('Domain check failed');
-    callback('Email must include a domain', false);
-  }
-}
-
-function tldCheck(email, callback) {
-  const tldRegex = /\.(com|org|net|edu|gov|mil|int|info|biz|name|museum|coop|aero|pro|[a-z]{2})$/i;
-  if (tldRegex.test(email)) {
-    console.log('TLD check passed');
-    callback(null, true);
-  } else {
-    console.log('TLD check failed');
-    callback('Email must include a valid top-level domain', false);
-  }
-}
-
-function validateEmail(email, callback) {
-  const checks = [formatCheck, domainCheck, tldCheck];
-  const results = [];
-  const errorMessages = [];
-
-  function runCheck(index) {
-    if (index === checks.length) {
-      const isValid = errorMessages.length === 0;
-      console.log('Validation results:', { results, errorMessages });
-      callback(errorMessages, isValid);
-      return;
+  createAccount(accountNumber) {
+    if (this.accounts[accountNumber]) {
+      throw new Error('Account already exists.');
     }
-    
-    checks[index](email, (error, result) => {
-      if (error) errorMessages.push(error);
-      results.push(result);
-      runCheck(index + 1);
-    });
+    this.accounts[accountNumber] = { balance: 0 };
+    this.emit('accountCreated', accountNumber);
+    return 'Account created successfully.';
   }
 
-  runCheck(0);
+  deposit(accountNumber, amount) {
+    this._validateAccount(accountNumber);
+    if (amount <= 0) {
+      throw new Error('Deposit amount must be positive.');
+    }
+    this.accounts[accountNumber].balance += amount;
+    this.emit('moneyDeposited', accountNumber, amount);
+    return `Deposited ${amount} successfully.`;
+  }
+
+  withdraw(accountNumber, amount) {
+    this._validateAccount(accountNumber);
+    if (amount <= 0) {
+      throw new Error('Withdrawal amount must be positive.');
+    }
+    if (this.accounts[accountNumber].balance < amount) {
+      throw new Error('Insufficient funds.');
+    }
+    this.accounts[accountNumber].balance -= amount;
+    this.emit('moneyWithdrawn', accountNumber, amount);
+    return `Withdrew ${amount} successfully.`;
+  }
+
+  getBalance(accountNumber) {
+    this._validateAccount(accountNumber);
+    return `Balance: ${this.accounts[accountNumber].balance}`;
+  }
+
+  _validateAccount(accountNumber) {
+    if (!this.accounts[accountNumber]) {
+      throw new Error('Account does not exist.');
+    }
+  }
 }
 
-module.exports = { validateEmail };
+// Event listeners for logging
+const bankingSystem = new BankingSystem();
 
-// Manual testing script
+bankingSystem.on('accountCreated', (accountNumber) => {
+  console.log(`Account ${accountNumber} created.`);
+});
+
+bankingSystem.on('moneyDeposited', (accountNumber, amount) => {
+  console.log(`Deposited ${amount} into account ${accountNumber}.`);
+});
+
+bankingSystem.on('moneyWithdrawn', (accountNumber, amount) => {
+  console.log(`Withdrew ${amount} from account ${accountNumber}.`);
+});
+
+module.exports = BankingSystem;
+
+// Example usage for manual testing
 if (require.main === module) {
-  const testEmails = [
-    'test@example.com',
-    'testexample.com',
-    'test@example',
-    'user+name@example.com',
-    '@example.com',
-    'test@mail.example.com',
-    'test@example.c'
-  ];
-
-  testEmails.forEach(email => {
-    validateEmail(email, (errors, isValid) => {
-      console.log(`Email: ${email}`);
-      console.log('Errors:', errors);
-      console.log('Valid:', isValid);
-      console.log('---');
-    });
-  });
+  const bank = new BankingSystem();
+  
+  console.log(bank.createAccount('12345')); // Account 12345 created.
+  console.log(bank.deposit('12345', 100)); // Deposited 100 into account 12345.
+  console.log(bank.withdraw('12345', 50)); // Withdrew 50 from account 12345.
+  console.log(bank.getBalance('12345')); // Balance: 50
 }
